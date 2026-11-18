@@ -884,7 +884,7 @@ var CONFIG = {
   hours3: "Κυριακή – Κλειστά",
   address: "Οδός & αριθμός, Αθήνα",
   /* Κλειδί Web3Forms για αυτόματη αποστολή της φόρμας στο email σας (δωρεάν από web3forms.com) */
-  formKey: "",
+  formKey: "c14b47c8-6367-4ab0-83b1-321f5cc1bc49",
   /* Email που λαμβάνει τα αιτήματα της φόρμας (μέσω FormSubmit) */
   formTo: "info@kopa-websites.com",
   email: "info@kopa-websites.com"
@@ -1080,7 +1080,7 @@ route();
     var data=pending.data,req;
     if(CONFIG.formKey){
       req=fetch("https://api.web3forms.com/submit",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},
-        body:JSON.stringify(Object.assign({access_key:CONFIG.formKey,subject:pending.subject,from_name:data["Ονοματεπώνυμο"]+" (μέσω "+CONFIG.brand+")",replyto:data.Email,botcheck:""},data))})
+        body:JSON.stringify(Object.assign({access_key:CONFIG.formKey,subject:pending.subject,from_name:data["Ονοματεπώνυμο"]+" (μέσω "+CONFIG.brand+")",email:data.Email,replyto:data.Email,botcheck:""},data))})
         .then(function(r){return r.json()}).then(function(d){return !!(d&&d.success)});
     } else {
       req=fetch("https://formsubmit.co/ajax/"+encodeURIComponent(CONFIG.formTo||CONFIG.email),{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},
