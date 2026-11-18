@@ -317,6 +317,7 @@ nav.main a[aria-current="page"],.mnav a[aria-current="page"]{background:var(--in
 .qdone{text-align:left;animation:pageIn .5s cubic-bezier(.2,.7,.2,1)}
 .qdone .okic{width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;margin-bottom:16px}
 .qdone .okic svg{width:28px;height:28px}
+.qdone .okic.err{background:#c81e1e}
 .qdone h3{font-size:30px;margin-bottom:8px}
 .qdone p{color:var(--muted);margin-bottom:16px}
 .qdone pre{white-space:pre-wrap;font-family:var(--font);font-size:15px;background:#f8f8f8;border:1px solid #e3e3e3;border-radius:10px;padding:16px;margin:0 0 16px}
@@ -825,8 +826,6 @@ body.fixed-photo header.over{background:rgba(10,16,32,.55);backdrop-filter:blur(
             <p id="qDoneP">Το αίτημά σας είναι έτοιμο. Για να μας φτάσει, στείλτε το με email ή καλέστε μας και θα σας απαντήσουμε άμεσα.</p>
             <pre id="qSum"></pre>
             <div class="cacts" id="qActs">
-              <a class="btn solid sm" id="qMail" href="#">Αποστολή με email</a>
-              <button class="btn ghost sm" type="button" id="qCopy">Αντιγραφή κειμένου</button>
               <button class="btn ghost sm" type="button" id="qNew">Νέο αίτημα</button>
             </div>
           </div>
@@ -1035,11 +1034,11 @@ route();
     txt="Αίτημα προσφοράς – "+CONFIG.brand+"\n\nΟνοματεπώνυμο: "+$("#qName").value.trim()+"\nΤηλέφωνο: "+$("#qPhone").value.trim()+"\nEmail: "+$("#qEmail").value.trim()+
       ($("#qCompany").value.trim()?"\nΕπιχείρηση: "+$("#qCompany").value.trim():"")+"\nΥπηρεσίες: "+(svc.join(", ")||"—")+($("#qMsg").value.trim()?"\n\nΜήνυμα:\n"+$("#qMsg").value.trim():"");
     $("#qSum").textContent=txt;
-    $("#qMail").href="mailto:"+CONFIG.email+"?subject="+encodeURIComponent("Αίτημα προσφοράς – "+$("#qName").value.trim())+"&body="+encodeURIComponent(txt);
     var show=function(sent){
-      $("#qDoneT").textContent=sent?"Το μήνυμά σας στάλθηκε!":"Ευχαριστούμε!";
-      $("#qDoneP").textContent=sent?"Λάβαμε το αίτημά σας και θα επικοινωνήσουμε μαζί σας το συντομότερο.":"Το αίτημά σας είναι έτοιμο. Για να μας φτάσει, στείλτε το με email ή καλέστε μας και θα σας απαντήσουμε άμεσα.";
-      $("#qSum").hidden=sent;$("#qMail").hidden=sent;$("#qCopy").hidden=sent;
+      $("#qDoneT").textContent=sent?"Το μήνυμά σας στάλθηκε!":"Κάτι δεν πήγε καλά";
+      $("#qDone .okic").classList.toggle("err",!sent);$("#qNew").textContent=sent?"Νέο αίτημα":"Δοκιμάστε ξανά";
+      $("#qDoneP").textContent=sent?"Λάβαμε το αίτημά σας και θα επικοινωνήσουμε μαζί σας το συντομότερο.":"Δεν ήταν δυνατή η αποστολή αυτή τη στιγμή. Δοκιμάστε ξανά σε λίγο ή καλέστε μας στο "+CONFIG.phone+".";
+      $("#qSum").hidden=true;
       f.hidden=true;done.hidden=false;done.scrollIntoView({behavior:"smooth",block:"center"});
     };
     var btn=f.querySelector(".submit");btn.disabled=true;btn.textContent="ΑΠΟΣΤΟΛΗ…";
@@ -1060,8 +1059,7 @@ route();
     req.then(function(ok){show(ok)}).catch(function(){show(false)})
       .then(function(){btn.disabled=false;btn.textContent="ΥΠΟΒΟΛΗ"});
   });
-  $("#qCopy").addEventListener("click",function(){try{navigator.clipboard.writeText(txt).then(function(){toast("Το κείμενο αντιγράφηκε")},function(){toast("Η αντιγραφή δεν επιτράπηκε")})}catch(e){toast("Η αντιγραφή δεν επιτράπηκε")}});
-  $("#qNew").addEventListener("click",function(){f.reset();newCap();$("#qCapQ").hidden=true;formStart=Date.now();f.hidden=false;done.hidden=true;$("#qSum").hidden=false;$("#qMail").hidden=false;$("#qCopy").hidden=false});
+  $("#qNew").addEventListener("click",function(){if(this.textContent==="Νέο αίτημα")f.reset();newCap();$("#qHuman").checked=false;$("#qCapQ").hidden=true;formStart=Date.now();f.hidden=false;done.hidden=true});
 })();
 
 /* Διάφανο header πάνω από τη φωτογραφία */
