@@ -862,6 +862,8 @@ var CONFIG = {
   address: "Οδός & αριθμός, Αθήνα",
   /* Κλειδί Web3Forms για αυτόματη αποστολή της φόρμας στο email σας (δωρεάν από web3forms.com) */
   formKey: "",
+  /* Email που λαμβάνει τα αιτήματα της φόρμας (μέσω FormSubmit) */
+  formTo: "info@kopa-websites.com",
   email: "info@kopa-websites.com"
 };
 
@@ -1040,14 +1042,22 @@ route();
       $("#qSum").hidden=sent;$("#qMail").hidden=sent;$("#qCopy").hidden=sent;
       f.hidden=true;done.hidden=false;done.scrollIntoView({behavior:"smooth",block:"center"});
     };
-    if(!CONFIG.formKey){show(false);return}
     var btn=f.querySelector(".submit");btn.disabled=true;btn.textContent="ΑΠΟΣΤΟΛΗ…";
-    fetch("https://api.web3forms.com/submit",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},
-      body:JSON.stringify({access_key:CONFIG.formKey,subject:"Νέο αίτημα προσφοράς – "+$("#qName").value.trim(),from_name:CONFIG.brand+" – Φόρμα προσφοράς",
-        "Ονοματεπώνυμο":$("#qName").value.trim(),"Τηλέφωνο":$("#qPhone").value.trim(),email:$("#qEmail").value.trim(),"Επιχείρηση":$("#qCompany").value.trim()||"—",
-        "Υπηρεσίες":svc.join(", ")||"—","Μήνυμα":$("#qMsg").value.trim()||"—",botcheck:""})})
-      .then(function(r){return r.json()}).then(function(d){show(!!(d&&d.success))})
-      .catch(function(){show(false)})
+    var data={"Ονοματεπώνυμο":$("#qName").value.trim(),"Τηλέφωνο":$("#qPhone").value.trim(),"Email":$("#qEmail").value.trim(),
+      "Επιχείρηση":$("#qCompany").value.trim()||"—","Υπηρεσίες":svc.join(", ")||"—","Μήνυμα":$("#qMsg").value.trim()||"—"};
+    var subject="Νέο αίτημα προσφοράς – "+data["Ονοματεπώνυμο"];
+    var req;
+    if(CONFIG.formKey){
+      req=fetch("https://api.web3forms.com/submit",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},
+        body:JSON.stringify(Object.assign({access_key:CONFIG.formKey,subject:subject,from_name:CONFIG.brand+" – Φόρμα προσφοράς",email:data.Email,botcheck:""},data))})
+        .then(function(r){return r.json()}).then(function(d){return !!(d&&d.success)});
+    } else {
+      /* Αποστολή μέσω FormSubmit στο email της εταιρείας (CONFIG.formTo) */
+      req=fetch("https://formsubmit.co/ajax/"+encodeURIComponent(CONFIG.formTo||CONFIG.email),{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},
+        body:JSON.stringify(Object.assign({_subject:subject,_replyto:data.Email,_template:"table",_captcha:"false",_honey:""},data))})
+        .then(function(r){return r.json()}).then(function(d){return !!(d&&(d.success===true||d.success==="true"))});
+    }
+    req.then(function(ok){show(ok)}).catch(function(){show(false)})
       .then(function(){btn.disabled=false;btn.textContent="ΥΠΟΒΟΛΗ"});
   });
   $("#qCopy").addEventListener("click",function(){try{navigator.clipboard.writeText(txt).then(function(){toast("Το κείμενο αντιγράφηκε")},function(){toast("Η αντιγραφή δεν επιτράπηκε")})}catch(e){toast("Η αντιγραφή δεν επιτράπηκε")}});
