@@ -428,6 +428,16 @@ body.fixed-photo header.over{background:rgba(10,16,32,.55);backdrop-filter:blur(
 .cap-q input{width:110px;font:inherit;padding:10px 12px;border:1px solid #cfcfcf;border-radius:6px;background:#fff}
 .cap-q input.bad{border-color:#c81e1e}
 .hp{position:absolute!important;left:-9999px;width:1px;height:1px;overflow:hidden}
+
+.qprev{animation:pageIn .45s cubic-bezier(.2,.7,.2,1)}
+.qprev h3{font-size:28px;margin-bottom:6px}
+.pvnote{color:var(--muted);margin-bottom:16px}
+.pvmail{border:1px solid #dcdcdc;border-radius:12px;overflow:hidden;margin-bottom:18px;background:#fff}
+.pvrow{display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid #ececec;font-size:15px}
+.pvrow span{width:52px;flex:none;color:var(--muted)}
+.pvrow b{font-weight:600;word-break:break-word}
+.pvmail pre{margin:0;padding:16px;white-space:pre-wrap;font-family:var(--font);font-size:15px;background:#fafafa;line-height:1.6}
+.qprev .cacts{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
 /* Modal */
 .ov{position:fixed;inset:0;z-index:100;background:rgba(14,15,18,.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;padding:20px;overflow:auto}
 .ov.open{display:grid;place-items:center;animation:fade .25s ease both;opacity:0}
@@ -820,6 +830,20 @@ body.fixed-photo header.over{background:rgba(10,16,32,.55);backdrop-filter:blur(
             <p class="ferr" id="qErr" role="alert"></p>
             <button class="submit" type="submit">ΥΠΟΒΟΛΗ</button>
           </form>
+          <div class="qprev" id="qPrev" hidden>
+            <h3>Προεπισκόπηση email</h3>
+            <p class="pvnote">Ελέγξτε το μήνυμά σας. Πατώντας «Αποστολή email» θα σταλεί απευθείας σε εμάς.</p>
+            <div class="pvmail">
+              <div class="pvrow"><span>Προς</span><b id="pvTo"></b></div>
+              <div class="pvrow"><span>Από</span><b id="pvFrom"></b></div>
+              <div class="pvrow"><span>Θέμα</span><b id="pvSubj"></b></div>
+              <pre id="pvBody"></pre>
+            </div>
+            <div class="cacts">
+              <button class="submit" type="button" id="pvSend">Αποστολή email</button>
+              <button class="btn ghost" type="button" id="pvEdit">Διόρθωση</button>
+            </div>
+          </div>
           <div class="qdone" id="qDone" hidden>
             <span class="okic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></span>
             <h3 id="qDoneT">Ευχαριστούμε!</h3>
@@ -1034,31 +1058,42 @@ route();
     txt="Αίτημα προσφοράς – "+CONFIG.brand+"\n\nΟνοματεπώνυμο: "+$("#qName").value.trim()+"\nΤηλέφωνο: "+$("#qPhone").value.trim()+"\nEmail: "+$("#qEmail").value.trim()+
       ($("#qCompany").value.trim()?"\nΕπιχείρηση: "+$("#qCompany").value.trim():"")+"\nΥπηρεσίες: "+(svc.join(", ")||"—")+($("#qMsg").value.trim()?"\n\nΜήνυμα:\n"+$("#qMsg").value.trim():"");
     $("#qSum").textContent=txt;
-    var show=function(sent){
+
+    pending={data:{"Ονοματεπώνυμο":$("#qName").value.trim(),"Τηλέφωνο":$("#qPhone").value.trim(),"Email":$("#qEmail").value.trim(),
+      "Επιχείρηση":$("#qCompany").value.trim()||"—","Υπηρεσίες":svc.join(", ")||"—","Μήνυμα":$("#qMsg").value.trim()||"—"}};
+    pending.subject="Νέο αίτημα προσφοράς – "+pending.data["Ονοματεπώνυμο"];
+    $("#pvTo").textContent=CONFIG.formTo||CONFIG.email;$("#pvFrom").textContent=pending.data["Ονοματεπώνυμο"]+" <"+pending.data.Email+">";
+    $("#pvSubj").textContent=pending.subject;$("#pvBody").textContent=txt;
+    f.hidden=true;$("#qPrev").hidden=false;$("#qPrev").scrollIntoView({behavior:"smooth",block:"center"});
+  });
+  var pending=null;
+  function show(sent){
       $("#qDoneT").textContent=sent?"Το μήνυμά σας στάλθηκε!":"Κάτι δεν πήγε καλά";
       $("#qDone .okic").classList.toggle("err",!sent);$("#qNew").textContent=sent?"Νέο αίτημα":"Δοκιμάστε ξανά";
       $("#qDoneP").textContent=sent?"Λάβαμε το αίτημά σας και θα επικοινωνήσουμε μαζί σας το συντομότερο.":"Δεν ήταν δυνατή η αποστολή αυτή τη στιγμή. Δοκιμάστε ξανά σε λίγο ή καλέστε μας στο "+CONFIG.phone+".";
       $("#qSum").hidden=true;
       f.hidden=true;done.hidden=false;done.scrollIntoView({behavior:"smooth",block:"center"});
-    };
-    var btn=f.querySelector(".submit");btn.disabled=true;btn.textContent="ΑΠΟΣΤΟΛΗ…";
-    var data={"Ονοματεπώνυμο":$("#qName").value.trim(),"Τηλέφωνο":$("#qPhone").value.trim(),"Email":$("#qEmail").value.trim(),
-      "Επιχείρηση":$("#qCompany").value.trim()||"—","Υπηρεσίες":svc.join(", ")||"—","Μήνυμα":$("#qMsg").value.trim()||"—"};
-    var subject="Νέο αίτημα προσφοράς – "+data["Ονοματεπώνυμο"];
-    var req;
+    }
+  function sendMail(){
+    if(!pending)return;
+    var b=$("#pvSend");b.disabled=true;b.textContent="Αποστολή…";
+    var data=pending.data,req;
     if(CONFIG.formKey){
       req=fetch("https://api.web3forms.com/submit",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},
-        body:JSON.stringify(Object.assign({access_key:CONFIG.formKey,subject:subject,from_name:CONFIG.brand+" – Φόρμα προσφοράς",email:data.Email,botcheck:""},data))})
+        body:JSON.stringify(Object.assign({access_key:CONFIG.formKey,subject:pending.subject,from_name:data["Ονοματεπώνυμο"]+" (μέσω "+CONFIG.brand+")",replyto:data.Email,botcheck:""},data))})
         .then(function(r){return r.json()}).then(function(d){return !!(d&&d.success)});
     } else {
-      /* Αποστολή μέσω FormSubmit στο email της εταιρείας (CONFIG.formTo) */
       req=fetch("https://formsubmit.co/ajax/"+encodeURIComponent(CONFIG.formTo||CONFIG.email),{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},
-        body:JSON.stringify(Object.assign({_subject:subject,_replyto:data.Email,_template:"table",_captcha:"false",_honey:""},data))})
+        body:JSON.stringify(Object.assign({_subject:pending.subject,_replyto:data.Email,_template:"table",_captcha:"false",_honey:""},data))})
         .then(function(r){return r.json()}).then(function(d){return !!(d&&(d.success===true||d.success==="true"))});
     }
-    req.then(function(ok){show(ok)}).catch(function(){show(false)})
-      .then(function(){btn.disabled=false;btn.textContent="ΥΠΟΒΟΛΗ"});
-  });
+    req.catch(function(){return false}).then(function(ok){
+      b.disabled=false;b.textContent="Αποστολή email";
+      $("#qPrev").hidden=true;show(ok);
+    });
+  }
+  $("#pvSend").addEventListener("click",sendMail);
+  $("#pvEdit").addEventListener("click",function(){$("#qPrev").hidden=true;f.hidden=false;newCap();$("#qHuman").checked=false;$("#qCapQ").hidden=true;f.scrollIntoView({behavior:"smooth",block:"start"})});
   $("#qNew").addEventListener("click",function(){if(this.textContent==="Νέο αίτημα")f.reset();newCap();$("#qHuman").checked=false;$("#qCapQ").hidden=true;formStart=Date.now();f.hidden=false;done.hidden=true});
 })();
 
